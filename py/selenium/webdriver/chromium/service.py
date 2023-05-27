@@ -15,7 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 import typing
+import warnings
 
+from selenium.types import SubprocessStdAlias
 from selenium.webdriver.common import service
 
 
@@ -38,18 +40,28 @@ class ChromiumService(service.Service):
         port: int = 0,
         service_args: typing.Optional[typing.List[str]] = None,
         log_path: typing.Optional[str] = None,
+        log_output: SubprocessStdAlias = None,
         env: typing.Optional[typing.Mapping[str, str]] = None,
         start_error_message: typing.Optional[str] = None,
         **kwargs,
     ) -> None:
         self.service_args = service_args or []
-        if log_path:
-            self.service_args.append(f"--log-path={log_path}")
+        self.log_output = log_output
+        if log_path is not None:
+            warnings.warn(
+                "log_path has been deprecated, please use log_output", DeprecationWarning, stacklevel=2
+            )
+            self.log_output = log_path
+
+        if "--append-log" not in self.service_args and "--readable-timestamp" not in self.service_args:
+            self.service_args.append(f"--log-path={self.log_output}")
+            self.log_output = None
 
         super().__init__(
             executable=executable_path,
             port=port,
             env=env,
+            log_output=self.log_output,
             start_error_message=start_error_message,
             **kwargs,
         )
